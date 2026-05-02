@@ -1,0 +1,19 @@
+.statistique {
+  display: inline-block;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  padding: 20px 30px;
+  margin: 10px;
+  text-align: center;
+}
+
+.statistique h2 {
+  font-size: 2rem;
+  margin: 0;
+  color: #0a6e31;
+}
+
+.statistique p {
+  margin: 5px 0 0 0;
+  color: #333;
+}
