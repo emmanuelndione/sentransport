@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import Header from './Header';
 import Recherche from './Recherche';
@@ -7,60 +7,29 @@ import DetailLigne from './DetailLigne';
 import Footer from './Footer';
 
 function App() {
+  const [lignes, setLignes] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState(null);
   const [recherche, setRecherche] = useState("");
   const [ligneSelectionnee, setLigneSelectionnee] = useState(null);
-  const [compteur, setCompteur] = useState(0);
 
-  const lignes = [
-    {
-      id: 1,
-      numero: "7",
-      depart: "Parcelles Assainies",
-      arrivee: "Palais",
-      arrets: 12,
-      listeArrets: ["Parcelles Assainies", "Cambérène", "Yakhass", "Castors", "Patte d'Oie", "Grand Théâtre", "Palais"]
-    },
-    {
-      id: 2,
-      numero: "15",
-      depart: "Pikine",
-      arrivee: "Guédiawaye",
-      arrets: 8,
-      listeArrets: ["Pikine", "Djiddah Thiaroye", "Thiaroye", "Tivaouane", "Guédiawaye"]
-    },
-    {
-      id: 3,
-      numero: "23",
-      depart: "Liberté 6",
-      arrivee: "Médina",
-      arrets: 10,
-      listeArrets: ["Liberté 6", "Fann", "Mermoz", "Point E", "Médina"]
-    },
-    {
-      id: 4,
-      numero: "31",
-      depart: "Fann",
-      arrivee: "Liberté",
-      arrets: 6,
-      listeArrets: ["Fann", "Hann", "Liberté"]
-    },
-    {
-      id: 5,
-      numero: "42",
-      depart: "HLM",
-      arrivee: "Dieuppeul",
-      arrets: 9,
-      listeArrets: ["HLM", "Grand Yoff", "Dieuppeul"]
-    },
-    {
-      id: 6,
-      numero: "18",
-      depart: "Médina",
-      arrivee: "Sicap",
-      arrets: 7,
-      listeArrets: ["Médina", "Colobane", "Sicap"]
-    }
-  ];
+  useEffect(() => {
+    fetch("http://localhost:5000/lignes")
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Erreur serveur : " + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        setLignes(data);
+        setChargement(false);
+      })
+      .catch(error => {
+        setErreur(error.message);
+        setChargement(false);
+      });
+  }, []);
 
   const lignesFiltrees = lignes.filter(l =>
     l.depart.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -76,40 +45,51 @@ function App() {
     }
   }
 
+  if (chargement) {
+    return (
+      <div className="App">
+        <Header />
+        <main className="contenu">
+          <p className="message-chargement">Chargement des lignes...</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (erreur) {
+    return (
+      <div className="App">
+        <Header />
+        <main className="contenu">
+          <div className="message-erreur">
+            <p>Impossible de charger les lignes.</p>
+            <p className="erreur-detail">{erreur}</p>
+            <p>Verifiez que le serveur Flask est lance (python api/app.py).</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       <Header />
       <main className="contenu">
-        <p className="compteur-recherches">
-          Vous avez effectué {compteur} recherche{compteur > 1 ? 's' : ''}
-        </p>
-        <Recherche 
-          valeur={recherche} 
-          onChange={(val) => {
-            setRecherche(val);
-            if (val !== "") setCompteur(c => c + 1);
-          }}
-        />
+        <Recherche valeur={recherche} onChange={setRecherche} />
         <p className="resultat-recherche">
-          {lignesFiltrees.length} ligne{lignesFiltrees.length > 1 ? 's' : ''} trouvée{lignesFiltrees.length > 1 ? 's' : ''}
+          {lignesFiltrees.length} ligne{lignesFiltrees.length > 1 ? 's' : ''} trouvee{lignesFiltrees.length > 1 ? 's' : ''}
         </p>
-
-        {lignesFiltrees.length === 0 ? (
-          <p className="aucun-resultat">Aucune ligne trouvée</p>
-        ) : (
-          lignesFiltrees.map(ligne => (
-            <LigneBus
-              key={ligne.id}
-              numero={ligne.numero}
-              depart={ligne.depart}
-              arrivee={ligne.arrivee}
-              arrets={ligne.arrets}
-              estSelectionnee={ligneSelectionnee && ligneSelectionnee.id === ligne.id}
-              onClick={() => handleClickLigne(ligne)}
-            />
-          ))
-        )}
-
+        {lignesFiltrees.map(ligne => (
+          <LigneBus
+            key={ligne.id}
+            numero={ligne.numero}
+            depart={ligne.depart}
+            arrivee={ligne.arrivee}
+            arrets={ligne.arrets}
+            estSelectionnee={ligneSelectionnee && ligneSelectionnee.id === ligne.id}
+            onClick={() => handleClickLigne(ligne)}
+          />
+        ))}
         {ligneSelectionnee && <DetailLigne ligne={ligneSelectionnee} />}
       </main>
       <Footer />
