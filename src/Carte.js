@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './Carte.css';
 
-// Corriger les icônes Leaflet (bug webpack)
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -12,101 +11,115 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// ========== FONCTION DE CALCUL DE DISTANCE (Étape 5) ==========
 function calculerDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // rayon de la Terre en km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * 
-    Math.cos(lat2 * Math.PI / 180) * 
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
-// ========== COMPOSANT PRINCIPAL (Étape 5) ==========
+function BoutonCentrer({ position }) {
+  const map = useMap();
+  if (!position) return null;
+  return (
+    <button
+      className="btn-centrer"
+      onClick={() => map.setView(position, 15)}
+    >
+      📍 Centrer sur ma position
+    </button>
+  );
+}
+
 function Carte() {
   const [arrets, setArrets] = useState([]);
   const [positionUtilisateur, setPositionUtilisateur] = useState(null);
-  const [arretProche, setArretProche] = useState(null);
-  
+  const [arretsProches, setArretsProches] = useState([]);
+
   const DAKAR = [14.6928, -17.4467];
 
-  // 1. Charger les arrêts depuis Flask
   useEffect(() => {
-    fetch("http://localhost:5000/arrets")
+    fetch('http://localhost:5000/arrets')
       .then(r => r.json())
       .then(data => setArrets(data))
-      .catch(err => console.error("Erreur arrêts:", err));
+      .catch(err => console.error('Erreur arrets:', err));
   }, []);
 
-  // 2. Géolocalisation
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        pos => {
-          setPositionUtilisateur([
-            pos.coords.latitude,
-            pos.coords.longitude
-          ]);
-        },
-        () => console.log("Géolocalisation refusée")
+        pos => setPositionUtilisateur([pos.coords.latitude, pos.coords.longitude]),
+        () => console.log('Geolocation refusée')
       );
     }
   }, []);
 
-  // 3. Trouver l'arrêt le plus proche
   useEffect(() => {
     if (positionUtilisateur && arrets.length > 0) {
-      let proche = null;
-      let dMin = Infinity;
-      arrets.forEach(a => {
-        const d = calculerDistance(
-          positionUtilisateur[0],
-          positionUtilisateur[1],
-          a.lat,
-          a.lon
-        );
-        if (d < dMin) {
-          dMin = d;
-          proche = {...a, distance: d};
-        }
-      });
-      setArretProche(proche);
+      const arretsAvecDistance = arrets.map(a => ({
+        ...a,
+        distance: calculerDistance(
+          positionUtilisateur[0], positionUtilisateur[1],
+          a.lat, a.lon
+        )
+      }));
+      const top3 = arretsAvecDistance
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
+      setArretsProches(top3);
     }
   }, [positionUtilisateur, arrets]);
 
+  const icones = ['🥇', '🥈', '🥉'];
+  const couleurs = ['#e74c3c', '#e67e22', '#27ae60'];
+
   return (
     <div className="carte-container">
-      <h2 className="carte-titre">Carte des arrêts</h2>
-      
-      {arretProche && (
-        <p className="arret-proche">
-          Arrêt le plus proche : <strong>{arretProche.nom}</strong>
-          {" "}({arretProche.distance.toFixed(1)} km)
-        </p>
+      <h2 className="carte-titre">🗺️ Carte des arrêts</h2>
+
+      {arretsProches.length > 0 && (
+        <ul className="arrets-proches-liste">
+          <li className="titre-liste">📍 Les 3 arrêts les plus proches :</li>
+          {arretsProches.map((a, i) => (
+            <li key={a.id} style={{ color: couleurs[i], fontWeight: 'bold', padding: '2px 0' }}>
+              {icones[i]} {a.nom} — {a.distance.toFixed(1)} km
+              <span style={{ color: '#555', fontWeight: 'normal' }}>
+                {' '}(Lignes : {a.lignes.join(', ')})
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
 
       <MapContainer center={DAKAR} zoom={13} className="carte">
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; OpenStreetMap'
+          attribution="&copy; OpenStreetMap"
         />
-        
+
+        <BoutonCentrer position={positionUtilisateur} />
+
         {arrets.map(a => (
           <Marker key={a.id} position={[a.lat, a.lon]}>
             <Popup>
               <strong>{a.nom}</strong><br />
-              Lignes : {a.lignes.join(",")}
+              Lignes : {a.lignes.join(', ')}
+              {arretsProches.length > 0 && arretsProches[0].id === a.id && (
+                <><br /><span style={{ color: '#e74c3c' }}>⭐ Arrêt le plus proche !</span></>
+              )}
             </Popup>
           </Marker>
         ))}
-        
+
         {positionUtilisateur && (
           <Marker position={positionUtilisateur}>
-            <Popup>Vous êtes ici</Popup>
+            <Popup>📍 Vous êtes ici</Popup>
           </Marker>
         )}
       </MapContainer>

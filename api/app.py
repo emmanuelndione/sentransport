@@ -6,7 +6,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- VOTRE CODE EXISTANT DU LAB 5 ---
-with open("api/lignes_ddd.json", "r") as f:
+with open("lignes_ddd.json", "r") as f:
     lignes = json.load(f)
 
 @app.route("/")
@@ -51,7 +51,7 @@ def get_stats():
     })
 
 # --- AJOUT DU LAB 6 (Étape 3) ---
-with open("api/arrets.json", "r") as f:
+with open("arrets.json", "r") as f:
     arrets = json.load(f)
 
 @app.route("/arrets")
