@@ -36,5 +36,17 @@
     "depart": "Yoff", "arrivee": "Sandaga",
     "arrets": 11,
     "listeArrets": ["Yoff Village", "Aeroport LSS", "Parcelles U17", "Grand Yoff", "HLM", "Sandaga"]
+  },
+  {
+    "id": 7, "numero": "27",
+    "depart": "Cite Soprim", "arrivee": "Gare Routiere",
+    "arrets": 13,
+    "listeArrets": ["Cite Soprim", "Liberte 6", "Fann", "Plateau", "Gare Routiere"]
+  },
+  {
+    "id": 8, "numero": "42",
+    "depart": "Thiaroye", "arrivee": "Sandaga",
+    "arrets": 15,
+    "listeArrets": ["Thiaroye", "Pikine", "Colobane", "HLM", "Sandaga"]
   }
 ]

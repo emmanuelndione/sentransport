@@ -13,7 +13,9 @@ function App() {
   const [recherche, setRecherche] = useState("");
   const [ligneSelectionnee, setLigneSelectionnee] = useState(null);
 
-  useEffect(() => {
+  function chargerLignes() {
+    setChargement(true);
+    setErreur(null);
     fetch("http://localhost:5000/lignes")
       .then(response => {
         if (!response.ok) {
@@ -29,6 +31,10 @@ function App() {
         setErreur(error.message);
         setChargement(false);
       });
+  }
+
+  useEffect(() => {
+    chargerLignes();
   }, []);
 
   const lignesFiltrees = lignes.filter(l =>
@@ -38,11 +44,26 @@ function App() {
   );
 
   function handleClickLigne(ligne) {
+    // Désélectionner si on reclique sur la même ligne
     if (ligneSelectionnee && ligneSelectionnee.id === ligne.id) {
       setLigneSelectionnee(null);
-    } else {
-      setLigneSelectionnee(ligne);
+      return;
     }
+
+    // Charger les détails depuis Flask via GET /lignes/<id>
+    fetch("http://localhost:5000/lignes/" + ligne.id)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Erreur serveur : " + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        setLigneSelectionnee(data);
+      })
+      .catch(error => {
+        console.error("Impossible de charger les détails :", error.message);
+      });
   }
 
   if (chargement) {
@@ -76,6 +97,9 @@ function App() {
       <Header />
       <main className="contenu">
         <Recherche valeur={recherche} onChange={setRecherche} />
+        <button onClick={chargerLignes} className="btn-recharger">
+          Recharger
+        </button>
         <p className="resultat-recherche">
           {lignesFiltrees.length} ligne{lignesFiltrees.length > 1 ? 's' : ''} trouvee{lignesFiltrees.length > 1 ? 's' : ''}
         </p>
