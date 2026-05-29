@@ -1,12 +1,12 @@
 import json
-from flask import Flask, jsonify , request
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-# Charger les donnees depuis le fichier JSON
-with open("lignes_ddd.json", "r") as f:
+# --- VOTRE CODE EXISTANT DU LAB 5 ---
+with open("api/lignes_ddd.json", "r") as f:
     lignes = json.load(f)
 
 @app.route("/")
@@ -29,12 +29,16 @@ def get_ligne(ligne_id):
     if ligne is None:
         return jsonify({"erreur": "Ligne non trouvee"}), 404
     return jsonify(ligne)
-@app.route("/arrets")
-def get_arrets():
-    tous = []
-    for ligne in lignes:
-        tous.extend(ligne["listeArrets"])
-    return jsonify(list(set(tous)))
+
+@app.route("/lignes/recherche")
+def recherche():
+    q = request.args.get("q", "")
+    resultats = [
+        l for l in lignes
+        if q.lower() in l["depart"].lower() or q.lower() in l["arrivee"].lower()
+    ]
+    return jsonify(resultats)
+
 @app.route("/stats")
 def get_stats():
     total_lignes = len(lignes)
@@ -45,13 +49,14 @@ def get_stats():
         "total_arrets": total_arrets,
         "ligne_plus_darrets": ligne_max["numero"]
     })
-@app.route("/lignes/recherche")
-def recherche():
-    q = request.args.get("q", "")
-    resultats = [
-        l for l in lignes
-        if q.lower() in l["depart"].lower() or q.lower() in l["arrivee"].lower()
-    ]
-    return jsonify(resultats)
+
+# --- AJOUT DU LAB 6 (Étape 3) ---
+with open("api/arrets.json", "r") as f:
+    arrets = json.load(f)
+
+@app.route("/arrets")
+def get_arrets():
+    return jsonify(arrets)
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

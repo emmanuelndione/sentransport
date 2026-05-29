@@ -5,6 +5,7 @@ import Recherche from './Recherche';
 import LigneBus from './LigneBus';
 import DetailLigne from './DetailLigne';
 import Footer from './Footer';
+import Carte from './Carte';
 
 function App() {
   const [lignes, setLignes] = useState([]);
@@ -44,13 +45,11 @@ function App() {
   );
 
   function handleClickLigne(ligne) {
-    // Désélectionner si on reclique sur la même ligne
     if (ligneSelectionnee && ligneSelectionnee.id === ligne.id) {
       setLigneSelectionnee(null);
       return;
     }
 
-    // Charger les détails depuis Flask via GET /lignes/<id>
     fetch("http://localhost:5000/lignes/" + ligne.id)
       .then(response => {
         if (!response.ok) {
@@ -115,6 +114,10 @@ function App() {
           />
         ))}
         {ligneSelectionnee && <DetailLigne ligne={ligneSelectionnee} />}
+        
+        {/* LA CARTE - AJOUTÉ POUR LE LAB 6 */}
+        <Carte />
+        
       </main>
       <Footer />
     </div>
